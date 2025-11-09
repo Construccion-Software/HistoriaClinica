@@ -1,3 +1,5 @@
+using HistoriasClinicas.Api.Models.Enums;
+
 namespace HistoriasClinicas.Api.Models
 {
     public class AyudaDiagnostica
@@ -7,7 +9,8 @@ namespace HistoriasClinicas.Api.Models
         public int Cantidad { get; set; }
         public bool RequiereAsistenciaEspecialista { get; set; }
         public List<Especialista>? Especialidades { get; set; }  
-        public int Item { get; set; }                 
+        public int Item { get; set; }
+        public EstadoAyudaDiagnostica Estado { get; set; } = EstadoAyudaDiagnostica.Pendiente;
     }
 
 }

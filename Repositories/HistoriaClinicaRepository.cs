@@ -12,6 +12,30 @@ namespace HistoriasClinicas.Api.Repositories
         {
             var database = mongoClient.GetDatabase(settings.DatabaseName);
             _historiasCollection = database.GetCollection<HistoriaClinica>(settings.CollectionName);
+            
+            // Crear índice único: (CedulaPaciente, FechaAtencion)
+            // Esto implementa la regla: cédula como clave principal, fecha como subclave
+            CrearIndices();
+        }
+
+        private void CrearIndices()
+        {
+            try
+            {
+                var indexKeysDefinition = Builders<HistoriaClinica>.IndexKeys
+                    .Ascending(h => h.CedulaPaciente)
+                    .Ascending(h => h.FechaAtencion);
+
+                var indexOptions = new CreateIndexOptions { Unique = true };
+                var indexModel = new CreateIndexModel<HistoriaClinica>(indexKeysDefinition, indexOptions);
+
+                _historiasCollection.Indexes.CreateOne(indexModel);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al crear índices: {ex.Message}");
+                // No lanzar excepción si el índice ya existe
+            }
         }
 
         public async Task<List<HistoriaClinica>> GetAllAsync() =>
@@ -30,6 +54,13 @@ namespace HistoriasClinicas.Api.Repositories
                 h.FechaAtencion >= fechaInicio && 
                 h.FechaAtencion < fechaFin
             ).FirstOrDefaultAsync();
+        }
+
+        public async Task<List<HistoriaClinica>> GetByCedulaAsync(string cedula)
+        {
+            return await _historiasCollection.Find(h => h.CedulaPaciente == cedula)
+                .SortByDescending(h => h.FechaAtencion)
+                .ToListAsync();
         }
 
         public async Task CreateAsync(HistoriaClinica historia) =>

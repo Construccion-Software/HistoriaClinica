@@ -1,11 +1,13 @@
 using HistoriasClinicas.Api.Models;
+using HistoriasClinicas.Api.Models.Enums;
 
 
 namespace HistoriasClinicas.Api.BusinessRules.Rules
 {
     /// <summary>
-    /// Regla: Cuando se receta una ayuda diagnóstica, no puede recetarse procedimiento ni medicamento 
+    /// Regla: Cuando se receta una ayuda diagnóstica PENDIENTE, no puede recetarse procedimiento ni medicamento 
     /// ya que no se tiene certeza del diagnóstico.
+    /// Si la ayuda está FINALIZADA, sí se pueden recetar meds y procs.
     public class AyudaDiagnosticaExcluyentesRule : IValidationRule
     {
         public string NombreRegla => "Ayuda Diagnóstica Excluyentes";
@@ -18,8 +20,9 @@ namespace HistoriasClinicas.Api.BusinessRules.Rules
             if (historia.AyudasDiagnosticas == null || !historia.AyudasDiagnosticas.Any())
                 return errors;
 
-
-            bool hayAyudasPendientes = historia.AyudasDiagnosticas.Any();
+            bool hayAyudasPendientes = historia.AyudasDiagnosticas
+                .Any(a => a.Estado == EstadoAyudaDiagnostica.Pendiente || 
+                          a.Estado == EstadoAyudaDiagnostica.ConResultados);
 
             if (hayAyudasPendientes)
             {

@@ -76,5 +76,18 @@ namespace HistoriasClinicas.Api.Controllers
             await _repo.DeleteAsync(id);
             return NoContent();
         }
+
+        [HttpGet("paciente/{cedula}")]
+        public async Task<ActionResult<List<HistoriaClinica>>> GetByCedula(string cedula)
+        {
+            if (string.IsNullOrWhiteSpace(cedula))
+                return BadRequest("La cédula es requerida");
+
+            var historias = await _repo.GetByCedulaAsync(cedula);
+            if (historias == null || historias.Count == 0)
+                return NotFound($"No se encontraron atenciones para el paciente con cédula {cedula}");
+
+            return Ok(historias);
+        }
     }
 }
