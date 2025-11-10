@@ -18,7 +18,21 @@ namespace HistoriasClinicas.Api.Controllers
             _service = service;
         }
 
-      
+        /// <summary>
+        /// Health check endpoint para Docker y orquestadores
+        /// </summary>
+        [HttpGet("health")]
+        [ProducesResponseType(200)]
+        public IActionResult Health()
+        {
+            return Ok(new { 
+                status = "healthy", 
+                timestamp = DateTime.UtcNow,
+                service = "HistoriasClinicas.Api",
+                version = "1.0.0"
+            });
+        }
+
         [HttpGet]
         public async Task<ActionResult<List<HistoriaClinica>>> GetAll()
         {

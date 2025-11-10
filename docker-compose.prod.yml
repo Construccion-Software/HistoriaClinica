@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Servicio de la API en producción
+  historias-clinicas-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: historias-clinicas-api-prod
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      # Variables de entorno para producción
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      # MongoDB Atlas cluster (desde variables de entorno del host)
+      MONGODB_CONNECTION_STRING: ${MONGODB_CONNECTION_STRING}
+      MONGODB_DATABASE_NAME: ${MONGODB_DATABASE_NAME}
+      MONGODB_COLLECTION_NAME: ${MONGODB_COLLECTION_NAME}
+      # Logging en producción
+      Logging__LogLevel__Default: Information
+      Logging__LogLevel__Microsoft.AspNetCore: Warning
+    networks:
+      - historias-clinicas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  historias-clinicas-network:
+    driver: bridge

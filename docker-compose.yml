@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Servicio de base de datos MongoDB
+  mongodb:
+    image: mongo:6.0
+    container_name: historias-clinicas-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE_NAME:-HistoriasClinicasDb}
+    volumes:
+      # Volumen persistente para los datos
+      - mongodb_data:/data/db
+      # Script de inicialización (opcional)
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - historias-clinicas-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio de la API
+  historias-clinicas-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: historias-clinicas-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Variables de entorno para desarrollo
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:5000
+      # MongoDB local
+      MONGODB_CONNECTION_STRING: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/${MONGODB_DATABASE_NAME:-HistoriasClinicasDb}?authSource=admin
+      MONGODB_DATABASE_NAME: ${MONGODB_DATABASE_NAME:-HistoriasClinicasDb}
+      MONGODB_COLLECTION_NAME: ${MONGODB_COLLECTION_NAME:-HistoriasClinicas}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - historias-clinicas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  historias-clinicas-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
