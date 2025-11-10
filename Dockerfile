@@ -24,9 +24,8 @@ WORKDIR /app
 # Copiar la aplicación compilada desde la etapa build
 COPY --from=build /app/publish .
 
-# Copiar archivos de configuración
+# Copiar archivos de configuración (solo los que están en el repositorio)
 COPY appsettings.json .
-COPY appsettings.Development.json .
 COPY appsettings.Production.json .
 
 # Exponer el puerto 5000 (HTTP)
