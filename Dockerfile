@@ -1,5 +1,5 @@
 # Etapa 1: Build (compilar la aplicación)
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:6.0-focal AS build
 WORKDIR /src
 
 # Copiar archivos del proyecto
@@ -18,8 +18,11 @@ RUN dotnet build "HistoriasClinicas.Api.csproj" -c Release -o /app/build
 RUN dotnet publish "HistoriasClinicas.Api.csproj" -c Release -o /app/publish
 
 # Etapa 2: Runtime (ejecutar la aplicación)
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-focal AS runtime
 WORKDIR /app
+
+# Instalar ca-certificates y libssl3 para soporte SSL/TLS
+RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
 
 # Copiar la aplicación compilada desde la etapa build
 COPY --from=build /app/publish .
