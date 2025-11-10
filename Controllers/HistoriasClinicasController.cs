@@ -55,18 +55,29 @@ namespace HistoriasClinicas.Api.Controllers
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] HistoriaClinica historia)
         {
-            var errores = await _service.ValidarHistoria(historia);
-            if (errores.Count > 0)
+            try
             {
-                var resp = new ValidationErrorResponse
+                var errores = await _service.ValidarHistoria(historia);
+                if (errores.Count > 0)
                 {
-                    TraceId = HttpContext.TraceIdentifier,
-                    Errors = errores
-                };
-                return BadRequest(resp);
+                    var resp = new ValidationErrorResponse
+                    {
+                        TraceId = HttpContext.TraceIdentifier,
+                        Errors = errores
+                    };
+                    return BadRequest(resp);
+                }
+                await _repo.CreateAsync(historia);
+                return CreatedAtAction(nameof(GetById), new { id = historia.Id }, historia);
             }
-            await _repo.CreateAsync(historia);
-            return CreatedAtAction(nameof(GetById), new { id = historia.Id }, historia);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { 
+                    error = ex.Message,
+                    traceId = HttpContext.TraceIdentifier,
+                    details = ex.InnerException?.Message
+                });
+            }
         }
 
 
