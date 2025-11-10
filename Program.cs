@@ -54,10 +54,12 @@ var app = builder.Build();
 // Usar CORS
 app.UseCors("AllowAll");
 
+// Habilitar Swagger siempre (útil para testing)
+app.UseSwagger();
+app.UseSwaggerUI();
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
     app.UseHttpsRedirection();
 }
 
