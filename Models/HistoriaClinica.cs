@@ -1,8 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System;
-using System.Collections.Generic;
-using HistoriasClinicas.Api.Models;
+
 
 
 namespace HistoriasClinicas.Api.Models
