@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using HistoriasClinicas.Api.Models;
 using HistoriasClinicas.Api.Settings;
 using MongoDB.Driver;
@@ -12,9 +15,6 @@ namespace HistoriasClinicas.Api.Repositories
         {
             var database = mongoClient.GetDatabase(settings.DatabaseName);
             _historiasCollection = database.GetCollection<HistoriaClinica>(settings.CollectionName);
-            
-            // Crear índice único: (CedulaPaciente, FechaAtencion)
-            // Esto implementa la regla: cédula como clave principal, fecha como subclave
             CrearIndices();
         }
 
@@ -22,54 +22,38 @@ namespace HistoriasClinicas.Api.Repositories
         {
             try
             {
-                var indexKeysDefinition = Builders<HistoriaClinica>.IndexKeys
-                    .Ascending(h => h.CedulaPaciente)
-                    .Ascending(h => h.FechaAtencion);
-
+                var indexKeysDefinition = Builders<HistoriaClinica>.IndexKeys.Ascending(h => h.CedulaPaciente);
                 var indexOptions = new CreateIndexOptions { Unique = true };
                 var indexModel = new CreateIndexModel<HistoriaClinica>(indexKeysDefinition, indexOptions);
-
                 _historiasCollection.Indexes.CreateOne(indexModel);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error al crear índices: {ex.Message}");
-                // No lanzar excepción si el índice ya existe
             }
         }
 
-        public async Task<List<HistoriaClinica>> GetAllAsync() =>
-            await _historiasCollection.Find(_ => true).ToListAsync();
-
-        public async Task<HistoriaClinica> GetByIdAsync(string id) =>
-            await _historiasCollection.Find(h => h.Id == id).FirstOrDefaultAsync();
-
-        public async Task<HistoriaClinica> GetByCedulaAndFechaAsync(string cedula, DateTime fecha)
+        public Task<List<HistoriaClinica>> GetAllAsync()
         {
-            var fechaInicio = fecha.Date;
-            var fechaFin = fechaInicio.AddDays(1);
-            
-            return await _historiasCollection.Find(h => 
-                h.CedulaPaciente == cedula && 
-                h.FechaAtencion >= fechaInicio && 
-                h.FechaAtencion < fechaFin
-            ).FirstOrDefaultAsync();
+            return _historiasCollection.Find(_ => true).ToListAsync();
         }
 
-        public async Task<List<HistoriaClinica>> GetByCedulaAsync(string cedula)
+        public async Task<HistoriaClinica?> GetByCedulaAsync(string cedula)
         {
-            return await _historiasCollection.Find(h => h.CedulaPaciente == cedula)
-                .SortByDescending(h => h.FechaAtencion)
-                .ToListAsync();
+            return await _historiasCollection
+                .Find(h => h.CedulaPaciente == cedula)
+                .FirstOrDefaultAsync();
         }
 
-        public async Task CreateAsync(HistoriaClinica historia) =>
-            await _historiasCollection.InsertOneAsync(historia);
+        public async Task UpsertRegistroAsync(string cedulaPaciente, string fechaClave, RegistroClinico registro)
+        {
+            var filter = Builders<HistoriaClinica>.Filter.Eq(h => h.CedulaPaciente, cedulaPaciente);
+            var update = Builders<HistoriaClinica>.Update
+                .Set(h => h.CedulaPaciente, cedulaPaciente)
+                .Set($"{nameof(HistoriaClinica.Historico)}.{fechaClave}", registro)
+                .Set(h => h.FechaUltimaActualizacion, DateTime.UtcNow);
 
-        public async Task UpdateAsync(string id, HistoriaClinica historia) =>
-            await _historiasCollection.ReplaceOneAsync(h => h.Id == id, historia);
-
-        public async Task DeleteAsync(string id) =>
-            await _historiasCollection.DeleteOneAsync(h => h.Id == id);
+            await _historiasCollection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
+        }
     }
 }

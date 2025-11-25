@@ -6,9 +6,9 @@ namespace HistoriasClinicas.Api.Services
     {
 
         public string Type { get; set; } = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
-        public string Title { get; set; } = "Errores de validación";
+        public string Title { get; set; } = "Errores de validaciï¿½n";
         public int Status { get; set; } = 400;
-        public string TraceId { get; set; }
+        public string TraceId { get; set; } = string.Empty;
         public Dictionary<string, List<string>> Errors { get; set; } = new();
 
 

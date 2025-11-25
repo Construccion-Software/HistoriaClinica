@@ -1,23 +1,21 @@
+using System.Collections.Generic;
+using System.Linq;
 using HistoriasClinicas.Api.Models;
-
 
 namespace HistoriasClinicas.Api.BusinessRules.Rules
 {
-    /// <summary>
-    /// Regla: En caso de haber varios medicamentos recetados, todos van asociados a la misma orden.
     public class MedicamentosAsociadosRule : IValidationRule
     {
         public string NombreRegla => "Medicamentos Asociados a Misma Orden";
 
-        public async Task<Dictionary<string, List<string>>> Validar(HistoriaClinica historia)
+        public async Task<Dictionary<string, List<string>>> Validar(RegistroClinico registro, RegistroValidacionContext contexto)
         {
             var errors = new Dictionary<string, List<string>>();
 
-
-            if (historia.Medicamentos == null || historia.Medicamentos.Count <= 1)
+            if (registro.Medicamentos == null || registro.Medicamentos.Count <= 1)
                 return errors;
 
-            var ordenesDistintas = historia.Medicamentos
+            var ordenesDistintas = registro.Medicamentos
                 .Select(m => m.NumeroOrden)
                 .Distinct()
                 .ToList();
@@ -26,8 +24,7 @@ namespace HistoriasClinicas.Api.BusinessRules.Rules
             {
                 var ordenes = string.Join(", ", ordenesDistintas);
                 AddError(errors, "medicamentos",
-                    $"Se encontraron múltiples órdenes ({ordenes}) en los medicamentos recetados. " +
-                    "Todos los medicamentos recetados deben estar asociados a la misma orden.");
+                    $"Se encontraron múltiples órdenes ({ordenes}) en los medicamentos recetados. Todos deben compartir la misma orden.");
             }
 
             return await Task.FromResult(errors);

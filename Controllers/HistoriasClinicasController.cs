@@ -1,5 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using HistoriasClinicas.Api.Models;
-using HistoriasClinicas.Api.Repositories;
 using HistoriasClinicas.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,12 +11,10 @@ namespace HistoriasClinicas.Api.Controllers
     [Route("api/[controller]")]
     public class HistoriasClinicasController : ControllerBase
     {
-        private readonly HistoriaClinicaRepository _repo;
         private readonly HistoriaClinicaService _service;
 
-        public HistoriasClinicasController(HistoriaClinicaRepository repo, HistoriaClinicaService service)
+        public HistoriasClinicasController(HistoriaClinicaService service)
         {
-            _repo = repo;
             _service = service;
         }
 
@@ -25,8 +25,9 @@ namespace HistoriasClinicas.Api.Controllers
         [ProducesResponseType(200)]
         public IActionResult Health()
         {
-            return Ok(new { 
-                status = "healthy", 
+            return Ok(new
+            {
+                status = "healthy",
                 timestamp = DateTime.UtcNow,
                 service = "HistoriasClinicas.Api",
                 version = "1.0.0"
@@ -34,31 +35,33 @@ namespace HistoriasClinicas.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<HistoriaClinica>>> GetAll()
+        public async Task<ActionResult<List<HistoriaClinica>>> ObtenerTodas()
         {
-            var historias = await _repo.GetAllAsync();
+            var historias = await _service.ObtenerTodasAsync();
             return Ok(historias);
         }
 
-  
-        [HttpGet("{id}")]
-        public async Task<ActionResult<HistoriaClinica>> GetById(string id)
+        [HttpGet("{cedulaPaciente}")]
+        public async Task<ActionResult<HistoriaClinica>> ObtenerPorCedula(string cedulaPaciente)
         {
-            var historia = await _repo.GetByIdAsync(id);
+            if (string.IsNullOrWhiteSpace(cedulaPaciente))
+                return BadRequest("La cédula es requerida");
+
+            var historia = await _service.ObtenerHistoriaAsync(cedulaPaciente);
             if (historia == null)
                 return NotFound();
+
             return Ok(historia);
         }
 
-
         [ProducesResponseType(typeof(ValidationErrorResponse), 400)]
-        [HttpPost]
-        public async Task<ActionResult> Create([FromBody] HistoriaClinica historia)
+        [HttpPost("{cedulaPaciente}/historico")]
+        public async Task<ActionResult> RegistrarAtencion(string cedulaPaciente, [FromBody] RegistroClinico registro)
         {
             try
             {
-                var errores = await _service.ValidarHistoria(historia);
-                if (errores.Count > 0)
+                var (isValid, errores) = await _service.CrearRegistroAsync(cedulaPaciente, registro);
+                if (!isValid)
                 {
                     var resp = new ValidationErrorResponse
                     {
@@ -67,52 +70,19 @@ namespace HistoriasClinicas.Api.Controllers
                     };
                     return BadRequest(resp);
                 }
-                await _repo.CreateAsync(historia);
-                return CreatedAtAction(nameof(GetById), new { id = historia.Id }, historia);
+
+                var historia = await _service.ObtenerHistoriaAsync(cedulaPaciente);
+                return CreatedAtAction(nameof(ObtenerPorCedula), new { cedulaPaciente }, historia);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { 
+                return StatusCode(500, new
+                {
                     error = ex.Message,
                     traceId = HttpContext.TraceIdentifier,
                     details = ex.InnerException?.Message
                 });
             }
-        }
-
-
-        [HttpPut("{id}")]
-        public async Task<ActionResult> Update(string id, HistoriaClinica historia)
-        {
-            var existing = await _repo.GetByIdAsync(id);
-            if (existing == null)
-                return NotFound();
-            historia.Id = id;
-            await _repo.UpdateAsync(id, historia);
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(string id)
-        {
-            var existing = await _repo.GetByIdAsync(id);
-            if (existing == null)
-                return NotFound();
-            await _repo.DeleteAsync(id);
-            return NoContent();
-        }
-
-        [HttpGet("paciente/{cedula}")]
-        public async Task<ActionResult<List<HistoriaClinica>>> GetByCedula(string cedula)
-        {
-            if (string.IsNullOrWhiteSpace(cedula))
-                return BadRequest("La cédula es requerida");
-
-            var historias = await _repo.GetByCedulaAsync(cedula);
-            if (historias == null || historias.Count == 0)
-                return NotFound($"No se encontraron atenciones para el paciente con cédula {cedula}");
-
-            return Ok(historias);
         }
     }
 }

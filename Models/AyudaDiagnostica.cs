@@ -11,6 +11,7 @@ namespace HistoriasClinicas.Api.Models
         public List<Especialista>? Especialidades { get; set; }  
         public int Item { get; set; }
         public EstadoAyudaDiagnostica Estado { get; set; } = EstadoAyudaDiagnostica.Pendiente;
+        public string? Resultado { get; set; }
     }
 
 }

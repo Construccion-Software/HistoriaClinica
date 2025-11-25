@@ -15,7 +15,6 @@ services:
     volumes:
       # Volumen persistente para los datos
       - mongodb_data:/data/db
-      # Script de inicialización (opcional)
       - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - historias-clinicas-network
