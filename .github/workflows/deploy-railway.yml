@@ -1,0 +1,15 @@
+# Deprecated placeholder. Please use deploy-render.yml instead.
+name: Deprecated Railway Workflow
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      - "*"
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "Workflow deprecated. Use deploy-render.yml."
